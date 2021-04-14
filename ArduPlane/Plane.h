@@ -34,6 +34,7 @@
 #include <AP_Param/AP_Param.h>
 #include <StorageManager/StorageManager.h>
 #include <AP_Math/AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
+#include <AP_ADC/AP_ADC_ADS1115.h>  // ADS1115 ADC libraries
 #include <AP_InertialSensor/AP_InertialSensor.h> // Inertial Sensor Library
 #include <AP_AccelCal/AP_AccelCal.h>                // interface and maths for accelerometer calibration
 #include <AP_AHRS/AP_AHRS.h>         // ArduPilot Mega DCM Library
@@ -870,6 +871,7 @@ private:
     void Log_Write_Vehicle_Startup_Messages();
     void Log_Write_AOA_SSA();
     void Log_Write_AETR();
+    void Log_Write_ADC (adc_report_s* report);      // Added
     void Log_Write_MavCmdI(const mavlink_command_int_t &packet);
     void log_init();
 
@@ -1090,6 +1092,12 @@ private:
     bool allow_reverse_thrust(void) const;
     bool have_reverse_thrust(void) const;
     int16_t get_throttle_input(bool no_deadzone=false) const;
+
+    // ADC
+    AP_ADC_ADS1115 adc;
+    // adc_report_s *report;
+
+    void adc_read ();
 
     enum Failsafe_Action {
         Failsafe_Action_None      = 0,

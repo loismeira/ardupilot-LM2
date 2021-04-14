@@ -93,14 +93,12 @@
 
 extern const AP_HAL::HAL &hal;
 
-#define ADS1115_CHANNELS_COUNT           6
+#define ADS1115_CHANNELS_COUNT           4
 
 const uint8_t AP_ADC_ADS1115::_channels_number  = ADS1115_CHANNELS_COUNT;
 
 /* Only two differential channels used */
 static const uint16_t mux_table[ADS1115_CHANNELS_COUNT] = {
-    ADS1115_MUX_P1_N3,
-    ADS1115_MUX_P2_N3,
     ADS1115_MUX_P0_NG,
     ADS1115_MUX_P1_NG,
     ADS1115_MUX_P2_NG,
@@ -110,7 +108,7 @@ static const uint16_t mux_table[ADS1115_CHANNELS_COUNT] = {
 
 AP_ADC_ADS1115::AP_ADC_ADS1115()
     : _dev{}
-    , _gain(ADS1115_PGA_4P096)
+    , _gain(ADS1115_PGA_6P144)
     , _channel_to_read(0)
 {
     _samples = new adc_report_s[_channels_number];
@@ -128,9 +126,9 @@ bool AP_ADC_ADS1115::init()
         return false;
     }
 
-    _gain = ADS1115_PGA_4P096;
+    _gain = ADS1115_PGA_6P144;
 
-    _dev->register_periodic_callback(100000, FUNCTOR_BIND_MEMBER(&AP_ADC_ADS1115::_update, void));
+    _dev->register_periodic_callback(2500, FUNCTOR_BIND_MEMBER(&AP_ADC_ADS1115::_update, void));
 
     return true;
 }
@@ -145,7 +143,7 @@ bool AP_ADC_ADS1115::_start_conversion(uint8_t channel)
     config.reg = ADS1115_RA_CONFIG;
     config.val = htobe16(ADS1115_OS_ACTIVE | _gain | mux_table[channel] |
                          ADS1115_MODE_SINGLESHOT | ADS1115_COMP_QUE_DISABLE |
-                         ADS1115_RATE_250);
+                         ADS1115_RATE_860);
 
     return _dev->transfer((uint8_t *)&config, sizeof(config), nullptr, 0);
 }
@@ -214,6 +212,8 @@ void AP_ADC_ADS1115::_update()
     if ((config[1] & 0x80) != 0x80 ) {
         return;
     }
+    // delay to not scramble results. Minimum tested: 300
+    hal.scheduler->delay_microseconds(300);
 
     if (!_dev->read_registers(ADS1115_RA_CONVERSION, (uint8_t *)&val,  sizeof(val))) {
         return;
@@ -221,7 +221,7 @@ void AP_ADC_ADS1115::_update()
 
     float sample = _convert_register_data_to_mv(be16toh(val));
 
-    _samples[_channel_to_read].data = sample;
+    _samples[_channel_to_read].data = sample*0.001f; // mVolts to Volts
     _samples[_channel_to_read].id = _channel_to_read;
 
     /* select next channel */

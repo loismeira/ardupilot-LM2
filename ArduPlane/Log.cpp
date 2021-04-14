@@ -287,6 +287,33 @@ struct PACKED log_CMDI {
     uint8_t F;
 };
 
+#if ADC_EXT == ENABLED
+// Logging of the ADC Data Added
+
+struct PACKED log_ADC {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float a0;
+    float a1;
+    float a2;
+    float a3;
+};
+
+void Plane::Log_Write_ADC(adc_report_s* rep)
+{
+    struct log_ADC pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_ADC_MSG),
+        time_us   : AP_HAL::micros64(),
+        a0        : rep[0].data,
+        a1        : rep[1].data,
+        a2        : rep[2].data,
+        a3        : rep[3].data
+    };
+
+    logger.WriteBlock(&pkt, sizeof(pkt));
+}
+#endif
+
 // type and unit information can be found in
 // libraries/AP_Logger/Logstructure.h; search for "log_Units" for
 // units and "Format characters" for field type information
@@ -462,7 +489,10 @@ const struct LogStructure Plane::log_structure[] = {
       "CMDA", "QHBBBBffffiifB",    "TimeUS,CId,TSys,TCmp,cur,cont,Prm1,Prm2,Prm3,Prm4,Lat,Lng,Alt,F", "s---------DUm-", "F---------GGB-" }, 
     { LOG_CMDH_MSG, sizeof(log_CMDI),     
       "CMDH", "QHBBBBffffiifB",    "TimeUS,CId,TSys,TCmp,cur,cont,Prm1,Prm2,Prm3,Prm4,Lat,Lng,Alt,F", "s---------DUm-", "F---------GGB-" }, 
-
+#if ADC_EXT == ENABLED
+    { LOG_ADC_MSG, sizeof(log_ADC),                         // Added
+      "ADC", "Qffff",  "TimeUS,A0,A1,A2,A3", "s----", "-----" },
+#endif
 };
 
 
@@ -536,6 +566,7 @@ void Plane::Log_Write_Guided(void) {}
 void Plane::Log_Write_MavCmdI(const mavlink_command_int_t &packet) {}
 void Plane::Log_Write_RC(void) {}
 void Plane::Log_Write_Vehicle_Startup_Messages() {}
+void Plane::Log_Write_ADC(adc_report_s *rep) {} // Added
 
 void Plane::log_init(void) {}
 
