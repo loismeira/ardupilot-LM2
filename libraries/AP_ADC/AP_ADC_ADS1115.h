@@ -6,7 +6,7 @@
 
 struct adc_report_s
 {
-    uint8_t id;
+    uint64_t sampletime; // sample time in us for debugging
     float data;
 };
 

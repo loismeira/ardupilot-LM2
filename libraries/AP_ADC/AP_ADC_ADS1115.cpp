@@ -1,5 +1,6 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/utility/sparse-endian.h>
+#include <AP_Logger/AP_Logger.h>
 
 #include "AP_ADC_ADS1115.h"
 
@@ -97,7 +98,7 @@ extern const AP_HAL::HAL &hal;
 
 const uint8_t AP_ADC_ADS1115::_channels_number  = ADS1115_CHANNELS_COUNT;
 
-/* Only two differential channels used */
+/* No differential channels used */
 static const uint16_t mux_table[ADS1115_CHANNELS_COUNT] = {
     ADS1115_MUX_P0_NG,
     ADS1115_MUX_P1_NG,
@@ -128,7 +129,10 @@ bool AP_ADC_ADS1115::init()
 
     _gain = ADS1115_PGA_6P144;
 
+    // 2500us -> 400Hz. This is the maximum.
     _dev->register_periodic_callback(2500, FUNCTOR_BIND_MEMBER(&AP_ADC_ADS1115::_update, void));
+
+
 
     return true;
 }
@@ -152,7 +156,7 @@ size_t AP_ADC_ADS1115::read(adc_report_s *report, size_t length) const
 {
     for (size_t i = 0; i < length; i++) {
         report[i].data = _samples[i].data;
-        report[i].id = _samples[i].id;
+        report[i].sampletime = _samples[i].sampletime;
     }
 
     return length;
@@ -205,24 +209,28 @@ void AP_ADC_ADS1115::_update()
 
     if (!_dev->read_registers(ADS1115_RA_CONFIG, config, sizeof(config))) {
         error("_dev->read_registers failed in ADS1115");
+    	AP::logger().Write_MessageF("_dev->read_registers "
+    			"(CONFIG) failed in ADS1115");
         return;
     }
 
     /* check rdy bit */
     if ((config[1] & 0x80) != 0x80 ) {
+    	AP::logger().Write_MessageF("ADS1115:Wait for conversion");
         return;
     }
     // delay to not scramble results. Minimum tested: 300
     hal.scheduler->delay_microseconds(300);
 
     if (!_dev->read_registers(ADS1115_RA_CONVERSION, (uint8_t *)&val,  sizeof(val))) {
+    	AP::logger().Write_MessageF("_dev->read_registers (CONV) failed in ADS1115");
         return;
     }
 
     float sample = _convert_register_data_to_mv(be16toh(val));
 
     _samples[_channel_to_read].data = sample*0.001f; // mVolts to Volts
-    _samples[_channel_to_read].id = _channel_to_read;
+    _samples[_channel_to_read].sampletime = AP_HAL::micros64(); // sample time in us for debugging
 
     /* select next channel */
     _channel_to_read = (_channel_to_read + 1) % _channels_number;

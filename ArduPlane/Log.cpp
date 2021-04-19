@@ -297,6 +297,10 @@ struct PACKED log_ADC {
     float a1;
     float a2;
     float a3;
+    uint64_t t0;
+    uint64_t t1;
+    uint64_t t2;
+    uint64_t t3;
 };
 
 void Plane::Log_Write_ADC(adc_report_s* rep)
@@ -307,7 +311,11 @@ void Plane::Log_Write_ADC(adc_report_s* rep)
         a0        : rep[0].data,
         a1        : rep[1].data,
         a2        : rep[2].data,
-        a3        : rep[3].data
+        a3        : rep[3].data,
+		t0        : rep[0].sampletime,
+		t1        : rep[1].sampletime,
+		t2        : rep[2].sampletime,
+		t3        : rep[3].sampletime,
     };
 
     logger.WriteBlock(&pkt, sizeof(pkt));
@@ -491,7 +499,7 @@ const struct LogStructure Plane::log_structure[] = {
       "CMDH", "QHBBBBffffiifB",    "TimeUS,CId,TSys,TCmp,cur,cont,Prm1,Prm2,Prm3,Prm4,Lat,Lng,Alt,F", "s---------DUm-", "F---------GGB-" }, 
 #if ADC_EXT == ENABLED
     { LOG_ADC_MSG, sizeof(log_ADC),                         // Added
-      "ADC", "Qffff",  "TimeUS,A0,A1,A2,A3", "s----", "-----" },
+      "ADC", "QffffQQQQ",  "TimeUS,A0,A1,A2,A3,T0,T1,T2,T3", "s----ssss", "---------" },
 #endif
 };
 
