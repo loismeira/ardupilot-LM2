@@ -4,8 +4,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/I2CDevice.h>
 
-struct adc_report_s
-{
+struct adc_report_s {
     uint64_t sampletime; // sample time in us for debugging
     float data;
 };
@@ -17,7 +16,6 @@ public:
     ~AP_ADC_ADS1115();
 
     bool init();
-    size_t read(adc_report_s *report, size_t length) const;
 
     uint8_t get_channels_number() const
     {
@@ -37,4 +35,5 @@ private:
     bool _start_conversion(uint8_t channel);
 
     float _convert_register_data_to_mv(int16_t word) const;
+    void Log_Write_ADC(adc_report_s* rep);
 };

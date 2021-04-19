@@ -1097,7 +1097,7 @@ private:
     AP_ADC_ADS1115 adc;
     // adc_report_s *report;
 
-    void adc_read ();
+    //void adc_read ();
 
     enum Failsafe_Action {
         Failsafe_Action_None      = 0,

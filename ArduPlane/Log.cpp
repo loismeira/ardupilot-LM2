@@ -1,4 +1,5 @@
 #include "Plane.h"
+#include <AP_ADC/AP_ADC_ADS1115.h>  // ADS1115 ADC libraries
 
 #if LOGGING_ENABLED == ENABLED
 
@@ -303,7 +304,7 @@ struct PACKED log_ADC {
     uint64_t t3;
 };
 
-void Plane::Log_Write_ADC(adc_report_s* rep)
+void AP_ADC_ADS1115::Log_Write_ADC(adc_report_s* rep)
 {
     struct log_ADC pkt = {
         LOG_PACKET_HEADER_INIT(LOG_ADC_MSG),
@@ -318,7 +319,7 @@ void Plane::Log_Write_ADC(adc_report_s* rep)
 		t3        : rep[3].sampletime,
     };
 
-    logger.WriteBlock(&pkt, sizeof(pkt));
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
 #endif
 
@@ -574,7 +575,7 @@ void Plane::Log_Write_Guided(void) {}
 void Plane::Log_Write_MavCmdI(const mavlink_command_int_t &packet) {}
 void Plane::Log_Write_RC(void) {}
 void Plane::Log_Write_Vehicle_Startup_Messages() {}
-void Plane::Log_Write_ADC(adc_report_s *rep) {} // Added
+void AP_ADC_ADS1115::Log_Write_ADC(adc_report_s *rep) {} // Added
 
 void Plane::log_init(void) {}
 

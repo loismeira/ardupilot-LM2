@@ -152,16 +152,6 @@ bool AP_ADC_ADS1115::_start_conversion(uint8_t channel)
     return _dev->transfer((uint8_t *)&config, sizeof(config), nullptr, 0);
 }
 
-size_t AP_ADC_ADS1115::read(adc_report_s *report, size_t length) const
-{
-    for (size_t i = 0; i < length; i++) {
-        report[i].data = _samples[i].data;
-        report[i].sampletime = _samples[i].sampletime;
-    }
-
-    return length;
-}
-
 float AP_ADC_ADS1115::_convert_register_data_to_mv(int16_t word) const
 {
 
@@ -235,4 +225,10 @@ void AP_ADC_ADS1115::_update()
     /* select next channel */
     _channel_to_read = (_channel_to_read + 1) % _channels_number;
     _start_conversion(_channel_to_read);
+
+    if (_channel_to_read == 0) {
+
+    	Log_Write_ADC(_samples);
+
+    }
 }

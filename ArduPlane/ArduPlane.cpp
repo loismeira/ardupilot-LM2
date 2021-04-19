@@ -78,9 +78,9 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
 #if HAL_MOUNT_ENABLED
     SCHED_TASK_CLASS(AP_Mount, &plane.camera_mount, update, 50, 100),
 #endif // HAL_MOUNT_ENABLED
-#if ADC_EXT == ENABLED
-    SCHED_TASK(adc_read,              100,    300),     // Added
-#endif // ADC_EXT == ENABLED
+//#if ADC_EXT == ENABLED
+//    SCHED_TASK(adc_read,              100,    300),     // Added
+//#endif // ADC_EXT == ENABLED
 #if CAMERA == ENABLED
     SCHED_TASK_CLASS(AP_Camera, &plane.camera, update,      50, 100),
 #endif // CAMERA == ENABLED
@@ -696,20 +696,20 @@ bool Plane::get_target_location(Location& target_loc)
     return false;
 }
 
-// Method ADC added1
+// Method ADC added
 
-void Plane::adc_read ()
-{
-    uint8_t chan_n = adc.get_channels_number();
-
-    adc_report_s *rep = new adc_report_s[chan_n];
-
-    adc.read(rep, (size_t)chan_n);
-
-    Log_Write_ADC(rep);
-
-    delete[] rep;
-
-}
+//void Plane::adc_read ()
+//{
+//    uint8_t chan_n = adc.get_channels_number();
+//
+//    adc_report_s *rep = new adc_report_s[chan_n];
+//
+//    adc.read(rep, (size_t)chan_n);
+//
+//    Log_Write_ADC(rep);
+//
+//    delete[] rep;
+//
+//}
 
 AP_HAL_MAIN_CALLBACKS(&plane);
