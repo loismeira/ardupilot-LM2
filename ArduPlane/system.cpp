@@ -103,8 +103,14 @@ void Plane::init_ardupilot()
 
     init_rc_in();               // sets up rc channels from radio
 
-    // Init ADC Added
-    adc.init();
+    // Init ADC Added. Address: 0 - GND, 1 - VDD, 2 - SDA, 3 - SCL
+
+#if ADC_EXT1 == ENABLED
+    adc1.init(0);
+#endif
+#if ADC_EXT2 == ENABLED
+    adc2.init(1);
+#endif
 
 #if HAL_MOUNT_ENABLED
     // initialise camera mount

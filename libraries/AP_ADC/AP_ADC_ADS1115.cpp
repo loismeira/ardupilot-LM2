@@ -9,7 +9,7 @@
 #define ADS1115_ADDRESS_ADDR_SDA    0x4A // address pin tied to SDA pin
 #define ADS1115_ADDRESS_ADDR_SCL    0x4B // address pin tied to SCL pin
 
-#define ADS1115_I2C_ADDR            ADS1115_ADDRESS_ADDR_GND
+//#define ADS1115_I2C_ADDR            ADS1115_ADDRESS_ADDR_GND
 #define ADS1115_I2C_BUS             1
 
 #define ADS1115_RA_CONVERSION       0x00
@@ -95,6 +95,7 @@
 extern const AP_HAL::HAL &hal;
 
 #define ADS1115_CHANNELS_COUNT           4
+#define ADS1115_ADDRESS_COUNT           4
 
 const uint8_t AP_ADC_ADS1115::_channels_number  = ADS1115_CHANNELS_COUNT;
 
@@ -106,11 +107,19 @@ static const uint16_t mux_table[ADS1115_CHANNELS_COUNT] = {
     ADS1115_MUX_P3_NG
 };
 
+static const uint8_t addr_table[ADS1115_ADDRESS_COUNT] = {
+    ADS1115_ADDRESS_ADDR_GND,
+	ADS1115_ADDRESS_ADDR_VDD,
+	ADS1115_ADDRESS_ADDR_SDA,
+	ADS1115_ADDRESS_ADDR_SCL
+};
+
 
 AP_ADC_ADS1115::AP_ADC_ADS1115()
     : _dev{}
     , _gain(ADS1115_PGA_6P144)
     , _channel_to_read(0)
+	, _addr(ADS1115_ADDRESS_ADDR_GND)
 {
     _samples = new adc_report_s[_channels_number];
 }
@@ -120,14 +129,19 @@ AP_ADC_ADS1115::~AP_ADC_ADS1115()
     delete[] _samples;
 }
 
-bool AP_ADC_ADS1115::init()
+bool AP_ADC_ADS1115::init(uint8_t addr)
 {
-    _dev = hal.i2c_mgr->get_device(ADS1115_I2C_BUS, ADS1115_I2C_ADDR);
+	_addr = addr;
+
+    _dev = hal.i2c_mgr->get_device(ADS1115_I2C_BUS, addr_table[_addr]);
     if (!_dev) {
         return false;
     }
 
     _gain = ADS1115_PGA_6P144;
+
+    // This sets the bus speed between 100kHz (SPEED_LOW) and 400kHz (SPEED_HIGH). Has no effect in the sampling delays.
+    _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
     // 2500us -> 400Hz. This is the maximum.
     _dev->register_periodic_callback(2500, FUNCTOR_BIND_MEMBER(&AP_ADC_ADS1115::_update, void));
@@ -194,8 +208,8 @@ float AP_ADC_ADS1115::_convert_register_data_to_mv(int16_t word) const
 
 void AP_ADC_ADS1115::_update()
 {
+	be16_t val;
     uint8_t config[2];
-    be16_t val;
 
     if (!_dev->read_registers(ADS1115_RA_CONFIG, config, sizeof(config))) {
         error("_dev->read_registers failed in ADS1115");
@@ -209,8 +223,9 @@ void AP_ADC_ADS1115::_update()
     	AP::logger().Write_MessageF("ADS1115:Wait for conversion");
         return;
     }
-    // delay to not scramble results. Minimum tested: 300
-    hal.scheduler->delay_microseconds(300);
+
+//    // delay to not scramble results. Minimum tested: 300 (Against ardupilot official driver recommendations)
+//    hal.scheduler->delay_microseconds(300);
 
     if (!_dev->read_registers(ADS1115_RA_CONVERSION, (uint8_t *)&val,  sizeof(val))) {
     	AP::logger().Write_MessageF("_dev->read_registers (CONV) failed in ADS1115");
@@ -220,7 +235,7 @@ void AP_ADC_ADS1115::_update()
     float sample = _convert_register_data_to_mv(be16toh(val));
 
     _samples[_channel_to_read].data = sample*0.001f; // mVolts to Volts
-    _samples[_channel_to_read].sampletime = AP_HAL::micros64(); // sample time in us for debugging
+    //_samples[_channel_to_read].sampletime = AP_HAL::micros64(); // sample time in us for debugging
 
     /* select next channel */
     _channel_to_read = (_channel_to_read + 1) % _channels_number;
@@ -228,7 +243,7 @@ void AP_ADC_ADS1115::_update()
 
     if (_channel_to_read == 0) {
 
-    	Log_Write_ADC(_samples);
+    	Log_Write_ADC(_samples, 17+_addr);
 
     }
 }

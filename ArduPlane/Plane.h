@@ -1094,7 +1094,8 @@ private:
     int16_t get_throttle_input(bool no_deadzone=false) const;
 
     // ADC
-    AP_ADC_ADS1115 adc;
+    AP_ADC_ADS1115 adc1;
+    AP_ADC_ADS1115 adc2;
     // adc_report_s *report;
 
     //void adc_read ();
