@@ -58,9 +58,6 @@ private:
     // support for bounce buffers for DMA-safe transfers
     struct bouncebuffer_t *bounce_buffer_tx;
     struct bouncebuffer_t *bounce_buffer_rx;
-
-    // Number of callbacks=threads in the i2c bus
-    uint8_t cbnum;
 };
 
 }

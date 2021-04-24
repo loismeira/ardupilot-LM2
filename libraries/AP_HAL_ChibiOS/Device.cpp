@@ -34,8 +34,7 @@ using namespace ChibiOS;
 extern const AP_HAL::HAL& hal;
 
 DeviceBus::DeviceBus(uint8_t _thread_priority) :
-        thread_priority(_thread_priority),
-		cbnum(0)
+        thread_priority(_thread_priority)
 {
     bouncebuffer_init(&bounce_buffer_tx, 10, false);
     bouncebuffer_init(&bounce_buffer_rx, 10, false);
@@ -96,53 +95,36 @@ void DeviceBus::bus_thread(void *arg)
 #if CH_CFG_USE_HEAP == TRUE
 AP_HAL::Device::PeriodicHandle DeviceBus::register_periodic_callback(uint32_t period_usec, AP_HAL::Device::PeriodicCb cb, AP_HAL::Device *_hal_device)
 {
-	hal_device = _hal_device;
-	switch (hal_device->bus_type()) {
-	case AP_HAL::Device::BUS_TYPE_I2C:
-	{
-		// Add new callback
-		cbnum = cbnum +1;
-		// setup a name for the thread
-		const uint8_t name_len = 7;
-		char *name = (char *)malloc(name_len);
-		snprintf(name, name_len, "I2C%u_%u",
-				 hal_device->bus_num(),cbnum);
-		thread_ctx = thread_create_alloc(THD_WORKING_AREA_SIZE(HAL_DEVICE_THREAD_STACK),
-										 name,
-										 thread_priority,           /* Initial priority.    */
-										 DeviceBus::bus_thread,    /* Thread function.     */
-										 this);                     /* Thread parameter.    */
-		if (thread_ctx == nullptr) {
-			AP_HAL::panic("Failed to create bus thread %s", name);
-		}
+    if (!thread_started) {
+        thread_started = true;
 
-		break;
-	}
-	case AP_HAL::Device::BUS_TYPE_SPI:
-	{
-		if (!thread_started) {
-			thread_started = true;
-			// setup a name for the thread
-			const uint8_t name_len = 7;
-			char *name = (char *)malloc(name_len);
-			snprintf(name, name_len, "SPI%u",
-			hal_device->bus_num());
+        hal_device = _hal_device;
+        // setup a name for the thread
+        const uint8_t name_len = 7;
+        char *name = (char *)malloc(name_len);
+        switch (hal_device->bus_type()) {
+        case AP_HAL::Device::BUS_TYPE_I2C:
+            snprintf(name, name_len, "I2C%u",
+                     hal_device->bus_num());
+            break;
 
-			thread_ctx = thread_create_alloc(THD_WORKING_AREA_SIZE(HAL_DEVICE_THREAD_STACK),
-											 name,
-											 thread_priority,           /* Initial priority.    */
-											 DeviceBus::bus_thread,    /* Thread function.     */
-											 this);                     /* Thread parameter.    */
-			if (thread_ctx == nullptr) {
-				AP_HAL::panic("Failed to create bus thread %s", name);
-			}
-		}
-		break;
-	}
-	default:
-		break;
-	}
+        case AP_HAL::Device::BUS_TYPE_SPI:
+            snprintf(name, name_len, "SPI%u",
+                     hal_device->bus_num());
+            break;
+        default:
+            break;
+        }
 
+        thread_ctx = thread_create_alloc(THD_WORKING_AREA_SIZE(HAL_DEVICE_THREAD_STACK),
+                                         name,
+                                         thread_priority,           /* Initial priority.    */
+                                         DeviceBus::bus_thread,    /* Thread function.     */
+                                         this);                     /* Thread parameter.    */
+        if (thread_ctx == nullptr) {
+            AP_HAL::panic("Failed to create bus thread %s", name);
+        }
+    }
     DeviceBus::callback_info *callback = new DeviceBus::callback_info;
     if (callback == nullptr) {
         return nullptr;

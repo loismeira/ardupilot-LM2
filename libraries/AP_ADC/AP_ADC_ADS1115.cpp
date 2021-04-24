@@ -133,15 +133,15 @@ bool AP_ADC_ADS1115::init(uint8_t addr)
 {
 	_addr = addr;
 
-    _dev = hal.i2c_mgr->get_device(ADS1115_I2C_BUS, addr_table[_addr], 400000); // setting the speed here should work, see I2CDevice.cpp for ChibiOS. And default was supposedly set at 100kHz, so 400kHZ were supposed to be faster. Sadly, delays are the same.
+    _dev = hal.i2c_mgr->get_device(ADS1115_I2C_BUS, addr_table[_addr]);
     if (!_dev) {
         return false;
     }
 
     _gain = ADS1115_PGA_6P144;
 
-//    // This sets the bus speed between 100kHz (SPEED_LOW) and 400kHz (SPEED_HIGH). -Has no effect in the sampling delays-. Of course it doesnt set_speed is not implemented in chibiOS so this was useless.
-//    _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
+    // This sets the bus speed between 100kHz (SPEED_LOW) and 400kHz (SPEED_HIGH). Has no effect in the sampling delays.
+    _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
     // 2500us -> 400Hz. This is the maximum.
     _dev->register_periodic_callback(2500, FUNCTOR_BIND_MEMBER(&AP_ADC_ADS1115::_update, void));
@@ -209,23 +209,23 @@ float AP_ADC_ADS1115::_convert_register_data_to_mv(int16_t word) const
 void AP_ADC_ADS1115::_update()
 {
 	be16_t val;
-//    uint8_t config[2];
-//
-//    if (!_dev->read_registers(ADS1115_RA_CONFIG, config, sizeof(config))) {
-//        error("_dev->read_registers failed in ADS1115");
-//    	AP::logger().Write_MessageF("_dev->read_registers "
-//    			"(CONFIG) failed in ADS1115");
-//        return;
-//    }
-//
-//    /* check rdy bit */
-//    if ((config[1] & 0x80) != 0x80 ) {
-//    	AP::logger().Write_MessageF("ADS1115:Wait for conversion");
-//        return;
-//    }
+    uint8_t config[2];
 
-    // delay to not scramble results. Minimum tested: 300 (Against ardupilot official driver recommendations)
-    hal.scheduler->delay_microseconds(300);
+    if (!_dev->read_registers(ADS1115_RA_CONFIG, config, sizeof(config))) {
+        error("_dev->read_registers failed in ADS1115");
+    	AP::logger().Write_MessageF("_dev->read_registers "
+    			"(CONFIG) failed in ADS1115");
+        return;
+    }
+
+    /* check rdy bit */
+    if ((config[1] & 0x80) != 0x80 ) {
+    	AP::logger().Write_MessageF("ADS1115:Wait for conversion");
+        return;
+    }
+
+//    // delay to not scramble results. Minimum tested: 300 (Against ardupilot official driver recommendations)
+//    hal.scheduler->delay_microseconds(300);
 
     if (!_dev->read_registers(ADS1115_RA_CONVERSION, (uint8_t *)&val,  sizeof(val))) {
     	AP::logger().Write_MessageF("_dev->read_registers (CONV) failed in ADS1115");
